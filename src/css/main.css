@@ -230,3 +230,64 @@ body {
     border-radius: var(--radius);
     font-weight: 500;
 }
+
+/* Дополнительные стили для результатов */
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.stat-item.highlight {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+}
+
+.stat-item.highlight .stat-label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-item.highlight .stat-value {
+    color: white;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.stat-value.positive {
+    color: #059669;
+}
+
+.stat-value.negative {
+    color: #dc2626;
+}
+
+.additional-info {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.additional-info h3 {
+    font-size: 1.1rem;
+    margin: 1rem 0 0.5rem 0;
+    color: #334155;
+}
