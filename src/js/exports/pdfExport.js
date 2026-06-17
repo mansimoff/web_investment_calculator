@@ -1,8 +1,8 @@
 // pdfExport.js
 // Экспорт отчёта в PDF через jsPDF
-// Зависимости (CDN, подключать в index.html ДО этого файла):
+// Зависимости (подключать в index.html ДО этого файла, в указанном порядке):
 //   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-//   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+//   <script src="exports/fonts/roboto-vfs.js" defer></script>   ← кириллический шрифт, обязателен
 
 (function () {
     'use strict';
@@ -25,6 +25,12 @@
     const fmt    = n  => window.FinMath.formatCurrency(n);
     const fmtPct = n  => window.FinMath.formatPercent(n, 2);
     const fmtNum = n  => window.FinMath.formatNumber(n, 0);
+
+    // Активный шрифт для текущего рендера PDF.
+    // Устанавливается в начале exportPDF() в зависимости от того,
+    // удалось ли зарегистрировать кириллический Roboto.
+    // Используется во всех хелперах ниже (sectionHeader, twoColRow и т.д.)
+    let FONT = 'helvetica';
 
     // =========================================================
     // Построение объекта отчёта из lastResult
@@ -98,6 +104,23 @@
     }
 
     // =========================================================
+    // Регистрация кириллического шрифта Roboto в jsPDF
+    // Шрифт встроен как base64 в fonts/roboto-vfs.js (подключать
+    // этот файл в index.html ДО pdfExport.js)
+    // =========================================================
+    function registerCyrillicFont(doc) {
+        if (!window.ROBOTO_FONT_REGULAR_BASE64 || !window.ROBOTO_FONT_BOLD_BASE64) {
+            console.warn('Roboto VFS не найден — подключите fonts/roboto-vfs.js перед pdfExport.js. Кириллица не будет отображаться корректно.');
+            return false;
+        }
+        doc.addFileToVFS('Roboto-Regular.ttf', window.ROBOTO_FONT_REGULAR_BASE64);
+        doc.addFileToVFS('Roboto-Bold.ttf', window.ROBOTO_FONT_BOLD_BASE64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+        return true;
+    }
+
+    // =========================================================
     // Генерация PDF
     // =========================================================
     async function exportPDF(lastResult) {
@@ -110,6 +133,12 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
+        const fontReady = registerCyrillicFont(doc);
+        FONT = fontReady ? 'Roboto' : 'helvetica';
+        if (!fontReady) {
+            console.warn('PDF будет сгенерирован без поддержки кириллицы.');
+        }
+
         const PAGE_W  = 210;
         const PAGE_H  = 297;
         const MARGIN  = 18;
@@ -117,8 +146,9 @@
         let y = MARGIN;
 
         // ---- Шрифт ----
-        // jsPDF имеет встроенный helvetica; для кириллицы загружаем Roboto через CDN
-        // (инструкция по добавлению в index.html — в комментарии вверху файла)
+        // Кириллический Roboto регистрируется через registerCyrillicFont().
+        // Если VFS-файл со шрифтом не подключен, используется встроенный
+        // helvetica — в этом случае русский текст отображаться не будет.
 
         const COL_GRAY   = [120, 120, 120];
         const COL_BLACK  = [30, 30, 30];
@@ -142,7 +172,7 @@
 
         function sectionHeader(text) {
             addPageIfNeeded(12);
-            doc.setFont('helvetica', 'bold');
+            doc.setFont(FONT, 'bold');
             doc.setFontSize(11);
             doc.setTextColor(...COL_ACCENT);
             doc.text(text, MARGIN, y);
@@ -159,11 +189,11 @@
                 doc.setFillColor(...COL_BG_ROW);
                 doc.rect(MARGIN, y - 4.5, CONTENT_W, 7, 'F');
             }
-            doc.setFont('helvetica', 'normal');
+            doc.setFont(FONT, 'normal');
             doc.setFontSize(10);
             doc.setTextColor(...COL_GRAY);
             doc.text(label, MARGIN + 1, y);
-            doc.setFont('helvetica', 'bold');
+            doc.setFont(FONT, 'bold');
             doc.setTextColor(...COL_BLACK);
             doc.text(value, PAGE_W - MARGIN - 1, y, { align: 'right' });
             y += 7;
@@ -176,12 +206,12 @@
         doc.setFillColor(...COL_ACCENT);
         doc.rect(0, 0, PAGE_W, 28, 'F');
 
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(FONT, 'bold');
         doc.setFontSize(16);
         doc.setTextColor(255, 255, 255);
         doc.text('Инвестиционный Калькулятор', MARGIN, 13);
 
-        doc.setFont('helvetica', 'normal');
+        doc.setFont(FONT, 'normal');
         doc.setFontSize(10);
         doc.text(report.title, MARGIN, 21);
 
@@ -213,7 +243,7 @@
                 // Выделенная строка для главного результата
                 doc.setFillColor(...COL_ACCENT);
                 doc.rect(MARGIN, y - 5, CONTENT_W, 8, 'F');
-                doc.setFont('helvetica', 'bold');
+                doc.setFont(FONT, 'bold');
                 doc.setFontSize(11);
                 doc.setTextColor(255, 255, 255);
                 doc.text(cleanLabel, MARGIN + 2, y);
@@ -242,7 +272,7 @@
                 doc.addImage(imgData, 'PNG', MARGIN, y, imgW, imgH);
                 y += imgH + 8;
             } catch (e) {
-                doc.setFont('helvetica', 'italic');
+                doc.setFont(FONT, 'normal');
                 doc.setFontSize(9);
                 doc.setTextColor(...COL_GRAY);
                 doc.text('[График недоступен: ' + e.message + ']', MARGIN, y);
@@ -269,7 +299,7 @@
             addPageIfNeeded(10);
             doc.setFillColor(240, 242, 255);
             doc.rect(MARGIN, y - 5, CONTENT_W, 8, 'F');
-            doc.setFont('helvetica', 'bold');
+            doc.setFont(FONT, 'bold');
             doc.setFontSize(9);
             doc.setTextColor(...COL_ACCENT);
             cols.forEach(c => doc.text(c.label, c.x, y, { align: c.align }));
@@ -297,7 +327,7 @@
                     { val: interestShare,                     x: cols[4].x, align: 'right' },
                 ];
 
-                doc.setFont('helvetica', 'normal');
+                doc.setFont(FONT, 'normal');
                 doc.setFontSize(9);
                 doc.setTextColor(...COL_BLACK);
                 rowCols.forEach(c => doc.text(c.val, c.x, y, { align: c.align }));
@@ -313,7 +343,7 @@
         addPageIfNeeded(20);
         doc.setFillColor(254, 226, 226);
         doc.rect(MARGIN, y, CONTENT_W, 12, 'F');
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(FONT, 'bold');
         doc.setFontSize(8.5);
         doc.setTextColor(185, 28, 28);
         doc.text(
@@ -332,7 +362,7 @@
         const totalPages = doc.getNumberOfPages();
         for (let p = 1; p <= totalPages; p++) {
             doc.setPage(p);
-            doc.setFont('helvetica', 'normal');
+            doc.setFont(FONT, 'normal');
             doc.setFontSize(8);
             doc.setTextColor(...COL_GRAY);
             doc.text(

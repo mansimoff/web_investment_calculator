@@ -4,77 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Инвестиционный Калькулятор | Сложный Процент</title>
-    
-    <!-- Подключение стилей -->
+
     <link rel="stylesheet" href="css/main.css">
-    
-    <!-- Подключение Chart.js с CDN для графиков -->
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
-    
-    <!-- Математические модули (все до app.js) -->
+
+    <!-- Математические модули -->
     <script src="js/calculations/finansialMath.js" defer></script>
     <script src="js/calculations/futureValue.js" defer></script>
     <script src="js/calculations/interestRate.js" defer></script>
     <script src="js/calculations/targetYears.js" defer></script>
     <script src="js/calculations/contribution.js" defer></script>
     <script src="js/calculations/startingCapital.js" defer></script>
-    
-    <!-- Основной скрипт приложения (только один раз!) -->
+
+    <!-- График -->
+    <script src="js/charts/growthChart.js" defer></script>
+
+    <!-- Экспорт: jsPDF + SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <script src="js/exports/fonts/roboto-vfs.js" defer></script>
+    <script src="js/exports/pdfExport.js" defer></script>
+    <script src="js/exports/excelExport.js" defer></script>
+
+    <!-- Основной скрипт -->
     <script src="js/app.js" defer></script>
 </head>
 <body>
     <div class="calculator-container">
+
         <header class="calculator-header">
             <h1>📈 Калькулятор Инвестора</h1>
             <p class="subtitle">Моделируйте будущее капитала с учётом сложного процента</p>
         </header>
 
         <main>
-            <!-- Форма ввода данных -->
             <form id="investment-form" class="investment-form">
-                
-                <!-- Выбор режима расчёта -->
+
+                <!-- Выбор режима -->
                 <div class="mode-selector">
                     <label for="calc-mode">🔍 Что рассчитываем:</label>
                     <select id="calc-mode">
                         <option value="future-value">Конечную сумму</option>
                         <option value="interest-rate">Необходимый процент</option>
-                        <option value="target-years">Срок достижения</option>
+                        <option value="target-years">Срок достижения цели</option>
                         <option value="contribution">Размер пополнений</option>
                         <option value="starting-capital">Стартовый капитал</option>
                     </select>
                 </div>
 
                 <div class="form-grid">
-                    <!-- Стартовый капитал -->
+
                     <div class="input-group" id="group-start-capital">
                         <label for="start-capital">💵 Стартовый капитал</label>
                         <input type="number" id="start-capital" placeholder="100 000" min="0" step="1000">
-                        <span class="input-hint">Ваша начальная сумма, руб.</span>
+                        <span class="input-hint">Начальная сумма, руб.</span>
                     </div>
 
-                    <!-- Срок инвестиций -->
                     <div class="input-group" id="group-years">
                         <label for="years">⏳ Срок инвестиций</label>
-                        <input type="number" id="years" placeholder="10" min="1" max="60">
-                        <span class="input-hint">Количество лет</span>
+                        <input type="number" id="years" placeholder="10" min="1" max="100">
+                        <span class="input-hint">Количество лет (1–100)</span>
                     </div>
 
-                    <!-- Процентная ставка -->
                     <div class="input-group" id="group-rate">
                         <label for="interest-rate">📊 Процентная ставка</label>
-                        <input type="number" id="interest-rate" placeholder="15" min="0" step="0.1">
+                        <input type="number" id="interest-rate" placeholder="15" min="0.1" step="0.1">
                         <span class="input-hint">Годовая доходность, %</span>
                     </div>
 
-                    <!-- Размер пополнений -->
                     <div class="input-group" id="group-contribution">
                         <label for="contribution">🔄 Размер пополнений</label>
                         <input type="number" id="contribution" placeholder="10 000" min="0" step="500">
                         <span class="input-hint">Сумма регулярного взноса, руб.</span>
                     </div>
 
-                    <!-- Периодичность пополнений -->
                     <div class="input-group" id="group-period">
                         <label for="contribution-period">📅 Период пополнений</label>
                         <select id="contribution-period">
@@ -84,60 +89,62 @@
                         </select>
                     </div>
 
-                    <!-- Целевая сумма -->
                     <div class="input-group" id="group-target">
                         <label for="target-amount">🎯 Целевая сумма</label>
                         <input type="number" id="target-amount" placeholder="10 000 000" min="0" step="100000">
                         <span class="input-hint">Сумма, которую хотите накопить</span>
                     </div>
+
                 </div>
 
-                <!-- Блок с кнопками действий -->
+                <!-- Баннер ошибки валидации -->
+                <div id="form-error-banner" class="form-error-banner"></div>
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">✨ Рассчитать</button>
                     <button type="button" id="export-pdf" class="btn btn-secondary" disabled>📄 Скачать PDF</button>
                     <button type="button" id="export-excel" class="btn btn-secondary" disabled>📊 Скачать Excel</button>
                 </div>
+
             </form>
 
-            <!-- Блок для вывода результатов и графика -->
+            <!-- Результаты -->
             <section class="results-section">
-                <!-- Сюда будем выводить итоговые цифры -->
+
                 <div id="results-output" class="results-card">
                     <h2>Результаты расчёта</h2>
-                    <div class="results-placeholder">
+                    <div class="placeholder-stats">
                         <p>Заполните форму и нажмите «Рассчитать», чтобы увидеть прогноз.</p>
-                        <div class="placeholder-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Итоговая сумма</span>
-                                <span class="stat-value">— ₽</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Прибыль от процентов</span>
-                                <span class="stat-value">— ₽</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Всего пополнений</span>
-                                <span class="stat-value">— ₽</span>
-                            </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Итоговая сумма</span>
+                            <span class="stat-value">— ₽</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Прибыль от процентов</span>
+                            <span class="stat-value">— ₽</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Всего пополнений</span>
+                            <span class="stat-value">— ₽</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Место для графика -->
+                <!-- График — скрыт до первого расчёта в режиме future-value -->
                 <div id="chart-card" class="chart-card" style="display: none;">
                     <h2>📉 График роста капитала</h2>
                     <div class="chart-container">
                         <canvas id="growth-chart"></canvas>
                     </div>
                 </div>
+
             </section>
         </main>
 
-        <!-- Важное предупреждение внизу -->
         <footer class="disclaimer">
             ⚠️ Учитывайте налоги, инфляцию и комиссии при реальном инвестировании. Данный расчёт является модельным и не гарантирует точной доходности.
         </footer>
+
     </div>
 </body>
 </html>
